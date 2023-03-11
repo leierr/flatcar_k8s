@@ -4,17 +4,26 @@ variant: flatcar
 storage:
   files:
     - path: /opt/bin/kubectl
-      mode: 0755
       contents:
-        source: https://storage.googleapis.com/kubernetes-release/release/v1.26.0/bin/linux/amd64/kubectl
+        source: https://dl.k8s.io/release/v1.26.2/bin/linux/amd64/kubectl
+        verification:
+          hash: sha512-4cc639a5b3075a11e72b73bb6f79f54c2463d3951720bdd9aeb24bbb4cf1920163c22a10b17ab982c62a3c47c4d829015428126f0cbd4311e3fbd389406a2549
+      mode: 0755
+
     - path: /opt/bin/kubeadm
-      mode: 0755
       contents:
-        source: https://storage.googleapis.com/kubernetes-release/release/v1.26.0/bin/linux/amd64/kubeadm
+        source: https://dl.k8s.io/release/v1.26.2/bin/linux/amd64/kubeadm
+        verification:
+          hash: sha512-ef451be30ab3eb38f38502af59b67c75edffc23b09142f04257a71d94cdf68f93a4e3fc0f514ba1854af1575f240ea8b9efdd153e7d9048c904d29eec54defa8
+      mode: 0755
+
     - path: /opt/bin/kubelet
-      mode: 0755
       contents:
-        source: https://storage.googleapis.com/kubernetes-release/release/v1.26.0/bin/linux/amd64/kubelet
+        source: https://dl.k8s.io/release/v1.26.2/bin/linux/amd64/kubelet
+        verification:
+          hash: sha512-146929daea934779492ba93000b72caeb8b9f658fa42419d6352dac6597154bcc51ec5420cbd108504af58798adbcee62d3d083895ab11f633dfa0e450042fbb
+      mode: 0755
+
     - path: /etc/systemd/system/kubelet.service
       contents:
         source: https://raw.githubusercontent.com/kubernetes/release/v0.14.0/cmd/kubepkg/templates/latest/deb/kubelet/lib/systemd/system/kubelet.service
@@ -34,7 +43,7 @@ storage:
           kind: ClusterConfiguration
           controllerManager:
             extraArgs:
-              flex-volume-plugin-dir: "/opt/libexec/kubernetes/kubelet-plugins/volume/exec/"          
+              flex-volume-plugin-dir: "/opt/libexec/kubernetes/kubelet-plugins/volume/exec/"
 systemd:
   units:
     - name: kubelet.service
