@@ -58,9 +58,10 @@ storage:
     - path: /etc/flatcar/update.conf
       contents:
         inline: |
+          GROUP=stable
           REBOOT_STRATEGY=reboot
-          LOCKSMITHD_REBOOT_WINDOW_START=Thu 04:00
-          LOCKSMITHD_REBOOT_WINDOW_LENGTH=1h          
+          LOCKSMITHD_REBOOT_WINDOW_START="Thu 04:00"
+          LOCKSMITHD_REBOOT_WINDOW_LENGTH=1h
       mode: 0420
 
 systemd:
