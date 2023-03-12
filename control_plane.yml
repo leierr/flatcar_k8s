@@ -16,6 +16,14 @@ storage:
           hash: sha512-4cc639a5b3075a11e72b73bb6f79f54c2463d3951720bdd9aeb24bbb4cf1920163c22a10b17ab982c62a3c47c4d829015428126f0cbd4311e3fbd389406a2549
       mode: 0755
 
+# ignition only able to decompress .gz files, not tar.gz
+    - path: /opt/bin/crictl.tar.gz
+      contents:
+        source: https://github.com/kubernetes-sigs/cri-tools/releases/download/v1.26.0/crictl-v1.26.0-linux-amd64.tar.gz
+        verification:
+          hash: sha512-a3a2c02a90b008686c20babaf272e703924db2a3e2a0d4e2a7c81d994cbc68c47458a4a354ecc243af095b390815c7f203348b9749351ae817bd52a522300449
+      mode: 0755
+
     - path: /opt/bin/kubeadm
       contents:
         source: https://dl.k8s.io/release/v1.26.2/bin/linux/amd64/kubeadm
@@ -69,6 +77,8 @@ storage:
         inline: "cp01"
       mode: 0644
 
+# crictl
+
 systemd:
   units:
     - name: kubelet.service
@@ -80,6 +90,7 @@ systemd:
             ExecStart=
             ExecStart=/opt/bin/kubelet $KUBELET_KUBECONFIG_ARGS $KUBELET_CONFIG_ARGS $KUBELET_KUBEADM_ARGS $KUBELET_EXTRA_ARGS
 
+# also downloads cni-plugins
     - name: kubeadm.service
       enabled: true
       contents: |
@@ -95,6 +106,8 @@ systemd:
         ExecStartPre=/opt/bin/kubeadm init --config /etc/kubeadm.yml
         ExecStartPre=/usr/bin/mkdir /home/core/.kube
         ExecStartPre=/usr/bin/cp /etc/kubernetes/admin.conf /home/core/.kube/config
+        ExecStartPre=/usr/bin/mkdir -p /opt/cni/bin
+        ExecStartPre=/usr/bin/bash -c "/usr/bin/curl -L 'https://github.com/containernetworking/plugins/releases/download/v1.2.0/cni-plugins-linux-amd64-v1.2.0.tgz' | sudo tar -xzC /opt/cni/bin"
         ExecStart=/usr/bin/chown -R core:core /home/core/.kube
 
         [Install]
