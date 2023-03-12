@@ -16,7 +16,7 @@ networkd:
 
         [Network]
         DNS=9.9.9.9
-        Address=192.168.168.103/24
+        Address=192.168.168.102/24
         Gateway=192.168.168.1
 
 storage:
