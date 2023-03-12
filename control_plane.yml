@@ -1,6 +1,24 @@
 ---
 version: 1.0.0
 variant: flatcar
+passwd:
+  users:
+    - name: core
+      ssh_authorized_keys:
+        - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICKkHlDWS9S4YWSPSah1Pea5Jpt6+zasaPed0cR2FFhh leier@arch
+
+networkd:
+  units:
+    - name: 00-eth0.network
+      contents: |
+        [Match]
+        Name=ens32
+
+        [Network]
+        DNS=9.9.9.9
+        Address=192.168.168.103/24
+        Gateway=192.168.168.1
+
 storage:
   files:
     - path: /opt/bin/kubectl
@@ -46,6 +64,7 @@ storage:
           controllerManager:
             extraArgs:
               flex-volume-plugin-dir: "/opt/libexec/kubernetes/kubelet-plugins/volume/exec/"
+              pod-network-cidr: "10.244.0.0/16"
 
 systemd:
   units:
@@ -76,4 +95,4 @@ systemd:
         ExecStart=/usr/bin/chown -R core:core /home/core/.kube
 
         [Install]
-        WantedBy=multi-user.target        
+        WantedBy=multi-user.target
