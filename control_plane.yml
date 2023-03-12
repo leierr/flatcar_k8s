@@ -66,6 +66,19 @@ storage:
               flex-volume-plugin-dir: "/opt/libexec/kubernetes/kubelet-plugins/volume/exec/"
               pod-network-cidr: "10.244.0.0/16"
 
+    # because of https://github.com/flatcar/Flatcar/issues/968
+    - path: /etc/systemd/network/00-eth0.network
+      mode: 0644
+      contents:
+        inline: |
+          [Match]
+          Name=ens32
+
+          [Network]
+          DNS=9.9.9.9
+          Address=192.168.168.103/24
+          Gateway=192.168.168.1
+
 systemd:
   units:
     - name: kubelet.service
