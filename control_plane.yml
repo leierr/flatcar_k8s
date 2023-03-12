@@ -26,10 +26,12 @@ storage:
 
     - path: /etc/systemd/system/kubelet.service
       contents:
-        source: https://raw.githubusercontent.com/kubernetes/release/v0.14.0/cmd/kubepkg/templates/latest/deb/kubelet/lib/systemd/system/kubelet.service
+        source: https://raw.githubusercontent.com/kubernetes/release/v0.15.0/cmd/kubepkg/templates/latest/deb/kubelet/lib/systemd/system/kubelet.service
+
     - path: /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
       contents:
-        source: https://raw.githubusercontent.com/kubernetes/release/v0.14.0/cmd/kubepkg/templates/latest/deb/kubeadm/10-kubeadm.conf
+        source: https://raw.githubusercontent.com/kubernetes/release/v0.15.0/cmd/kubepkg/templates/latest/deb/kubeadm/10-kubeadm.conf
+
     - path: /etc/kubeadm.yml
       contents:
         inline: |
@@ -44,6 +46,7 @@ storage:
           controllerManager:
             extraArgs:
               flex-volume-plugin-dir: "/opt/libexec/kubernetes/kubelet-plugins/volume/exec/"
+
 systemd:
   units:
     - name: kubelet.service
