@@ -7,18 +7,6 @@ passwd:
       ssh_authorized_keys:
         - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICKkHlDWS9S4YWSPSah1Pea5Jpt6+zasaPed0cR2FFhh leier@arch
 
-networkd:
-  units:
-    - name: 00-eth0.network
-      contents: |
-        [Match]
-        Name=ens32
-
-        [Network]
-        DNS=9.9.9.9
-        Address=192.168.168.102/24
-        Gateway=192.168.168.1
-
 storage:
   files:
     - path: /opt/bin/kubectl
@@ -66,19 +54,6 @@ storage:
               flex-volume-plugin-dir: "/opt/libexec/kubernetes/kubelet-plugins/volume/exec/"
               pod-network-cidr: "10.244.0.0/16"
 
-    # because of https://github.com/flatcar/Flatcar/issues/968
-    - path: /etc/systemd/network/00-eth0.network
-      mode: 0644
-      contents:
-        inline: |
-          [Match]
-          Name=ens32
-
-          [Network]
-          DNS=9.9.9.9
-          Address=192.168.168.103/24
-          Gateway=192.168.168.1
-
 systemd:
   units:
     - name: kubelet.service
@@ -109,3 +84,30 @@ systemd:
 
         [Install]
         WantedBy=multi-user.target
+
+# networkd:
+#   units:
+#     - name: 00-eth0.network
+#       contents: |
+#         [Match]
+#         Name=ens32
+# 
+#         [Network]
+#         DNS=9.9.9.9
+#         Address=192.168.168.102/24
+#         Gateway=192.168.168.1
+# 
+# storage:
+#   files:
+#     # because of https://github.com/flatcar/Flatcar/issues/968
+#     - path: /etc/systemd/network/00-eth0.network
+#       mode: 0644
+#       contents:
+#         inline: |
+#           [Match]
+#           Name=ens32
+# 
+#           [Network]
+#           DNS=9.9.9.9
+#           Address=192.168.168.103/24
+#           Gateway=192.168.168.1
