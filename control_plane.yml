@@ -64,6 +64,11 @@ storage:
           LOCKSMITHD_REBOOT_WINDOW_LENGTH=1h
       mode: 0420
 
+    - path: /etc/hostname
+      contents:
+        inline: "cp01"
+      mode: 0644
+
 systemd:
   units:
     - name: kubelet.service
