@@ -41,18 +41,19 @@ storage:
     - path: /etc/kubeadm.yml
       contents:
         inline: |
-          apiVersion: kubeadm.k8s.io/v1beta2
+          apiVersion: kubeadm.k8s.io/v1beta3
           kind: InitConfiguration
           nodeRegistration:
             kubeletExtraArgs:
               volume-plugin-dir: "/opt/libexec/kubernetes/kubelet-plugins/volume/exec/"
           ---
-          apiVersion: kubeadm.k8s.io/v1beta2
+          apiVersion: kubeadm.k8s.io/v1beta3
           kind: ClusterConfiguration
           controllerManager:
             extraArgs:
               flex-volume-plugin-dir: "/opt/libexec/kubernetes/kubelet-plugins/volume/exec/"
-              pod-network-cidr: "10.244.0.0/16"
+          networking:
+            podSubnet: "10.244.0.0/16" # --pod-network-cidr
 
 systemd:
   units:
