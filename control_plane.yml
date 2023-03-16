@@ -16,14 +16,6 @@ storage:
           hash: sha512-4cc639a5b3075a11e72b73bb6f79f54c2463d3951720bdd9aeb24bbb4cf1920163c22a10b17ab982c62a3c47c4d829015428126f0cbd4311e3fbd389406a2549
       mode: 0755
 
-# ignition only able to decompress .gz files, not tar.gz
-    - path: /opt/bin/crictl.tar.gz
-      contents:
-        source: https://github.com/kubernetes-sigs/cri-tools/releases/download/v1.26.0/crictl-v1.26.0-linux-amd64.tar.gz
-        verification:
-          hash: sha512-a3a2c02a90b008686c20babaf272e703924db2a3e2a0d4e2a7c81d994cbc68c47458a4a354ecc243af095b390815c7f203348b9749351ae817bd52a522300449
-      mode: 0755
-
     - path: /opt/bin/kubeadm
       contents:
         source: https://dl.k8s.io/release/v1.26.2/bin/linux/amd64/kubeadm
@@ -46,6 +38,27 @@ storage:
       contents:
         source: https://raw.githubusercontent.com/kubernetes/release/v0.15.0/cmd/kubepkg/templates/latest/deb/kubeadm/10-kubeadm.conf
 
+    - path: /opt/bin/post_install.sh
+      contents:
+        inline: |
+          #!/usr/bin/bash
+          # check for internet connectivity
+          timeout 60 /usr/bin/bash -c "</dev/tcp/google.com/443" &> /dev/null || exit 1
+          # install cni plugins
+          CNI_PLUGINS_VERSION="v1.2.0"
+          CNI_ARCH="amd64"
+          mkdir -p /opt/cni/bin
+          /usr/bin/curl -L "https://github.com/containernetworking/plugins/releases/download/${CNI_PLUGINS_VERSION}/cni-plugins-linux-${CNI_ARCH}-${CNI_PLUGINS_VERSION}.tgz" | /usr/bin/tar -xzC /opt/cni/bin
+          # install crictl
+          CRICTL_VERSION="v1.26.0"
+          CRICTL_ARCH="amd64"
+          /usr/bin/curl -L "https://github.com/kubernetes-sigs/cri-tools/releases/download/${CRICTL_VERSION}/crictl-${CRICTL_VERSION}-linux-${CRICTL_ARCH}.tar.gz" | /usr/bin/tar -xzC /opt/bin
+          # install cilium cli
+          CILIUM_CLI_VERSION=$(curl -s https://raw.githubusercontent.com/cilium/cilium-cli/master/stable.txt)
+          CILIUM_CLI_ARCH=amd64
+          curl -L https://github.com/cilium/cilium-cli/releases/download/${CILIUM_CLI_VERSION}/cilium-linux-${CILIUM_CLI_ARCH}.tar.gz | /usr/bin/tar -xzC /opt/bin
+      mode: 0755
+
     - path: /etc/kubeadm.yml
       contents:
         inline: |
@@ -66,18 +79,16 @@ storage:
     - path: /etc/flatcar/update.conf
       contents:
         inline: |
-          GROUP=stable
-          REBOOT_STRATEGY=reboot
+          GROUP="stable"
+          REBOOT_STRATEGY="reboot"
           LOCKSMITHD_REBOOT_WINDOW_START="Thu 04:00"
-          LOCKSMITHD_REBOOT_WINDOW_LENGTH=1h
+          LOCKSMITHD_REBOOT_WINDOW_LENGTH="1h"
       mode: 0420
 
     - path: /etc/hostname
       contents:
         inline: "cp01"
       mode: 0644
-
-# crictl
 
 systemd:
   units:
@@ -106,36 +117,18 @@ systemd:
         ExecStartPre=/opt/bin/kubeadm init --config /etc/kubeadm.yml
         ExecStartPre=/usr/bin/mkdir /home/core/.kube
         ExecStartPre=/usr/bin/cp /etc/kubernetes/admin.conf /home/core/.kube/config
-        ExecStartPre=/usr/bin/mkdir -p /opt/cni/bin
-        ExecStartPre=/usr/bin/bash -c "/usr/bin/curl -L 'https://github.com/containernetworking/plugins/releases/download/v1.2.0/cni-plugins-linux-amd64-v1.2.0.tgz' | sudo tar -xzC /opt/cni/bin"
         ExecStart=/usr/bin/chown -R core:core /home/core/.kube
 
         [Install]
         WantedBy=multi-user.target
 
-# networkd:
-#   units:
-#     - name: 00-eth0.network
-#       contents: |
-#         [Match]
-#         Name=ens32
-# 
-#         [Network]
-#         DNS=9.9.9.9
-#         Address=192.168.168.102/24
-#         Gateway=192.168.168.1
-# 
-# storage:
-#   files:
-#     # because of https://github.com/flatcar/Flatcar/issues/968
-#     - path: /etc/systemd/network/00-eth0.network
-#       mode: 0644
-#       contents:
-#         inline: |
-#           [Match]
-#           Name=ens32
-# 
-#           [Network]
-#           DNS=9.9.9.9
-#           Address=192.168.168.103/24
-#           Gateway=192.168.168.1
+    - name: post_install_script.service
+      enabled: true
+      contents: |
+        [Unit]
+        Description=post install script
+
+        [Service]
+        Type=oneshot
+        ExecStart=/opt/bin/post_install.sh
+        ExecStop=/usr/bin/rm -f /opt/bin/post_install.sh /etc/systemd/system/post_install_script.service
