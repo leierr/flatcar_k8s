@@ -1,6 +1,6 @@
 #!/usr/bin/bash
 # check for internet connectivity
-timeout 60 /usr/bin/bash -c "</dev/tcp/google.com/443" &> /dev/null || exit 1
+/usr/bin/wget -q --spider --tries=20 --timeout=10 https://google.com || exit 1
 # install cni plugins
 CNI_PLUGINS_VERSION="v1.2.0"
 CNI_ARCH="amd64"
