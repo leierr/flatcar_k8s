@@ -121,7 +121,6 @@ systemd:
             ExecStart=
             ExecStart=/opt/bin/kubelet $KUBELET_KUBECONFIG_ARGS $KUBELET_CONFIG_ARGS $KUBELET_KUBEADM_ARGS $KUBELET_EXTRA_ARGS
 
-# also downloads cni-plugins
     - name: kubeadm.service
       enabled: true
       contents: |
