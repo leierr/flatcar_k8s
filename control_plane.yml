@@ -59,6 +59,24 @@ storage:
           curl -L https://github.com/cilium/cilium-cli/releases/download/${CILIUM_CLI_VERSION}/cilium-linux-${CILIUM_CLI_ARCH}.tar.gz | /usr/bin/tar -xzC /opt/bin
       mode: 0755
 
+    - path: /etc/selinux/config
+      contents:
+        inline: |
+          # SELINUX can take one of these three values:
+          #	enforcing - SELinux security policy is enforced.
+          #	permissive - SELinux prints warnings instead of enforcing.
+          #	disabled - No SELinux policy is loaded.
+          SELINUX=disabled
+
+          # SELINUXTYPE can take one of these four values:
+          #	targeted - Only targeted network daemons are protected.
+          #	strict   - Full SELinux protection.
+          #	mls      - Full SELinux protection with Multi-Level Security
+          #	mcs      - Full SELinux protection with Multi-Category Security
+          #	           (mls, but only one sensitivity level)
+          SELINUXTYPE=mcs
+      mode: 0644
+
     - path: /etc/kubeadm.yml
       contents:
         inline: |
