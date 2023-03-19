@@ -1,6 +1,12 @@
 ---
 version: 1.0.0
 variant: flatcar
+passwd:
+  users:
+    - name: core
+      ssh_authorized_keys:
+        - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICKkHlDWS9S4YWSPSah1Pea5Jpt6+zasaPed0cR2FFhh leier@arch
+
 storage:
   files:
     - path: /opt/bin/kubeadm
@@ -24,6 +30,26 @@ storage:
     - path: /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
       contents:
         source: https://raw.githubusercontent.com/kubernetes/release/v0.14.0/cmd/kubepkg/templates/latest/deb/kubeadm/10-kubeadm.conf
+
+# fuck selinux
+    - path: /etc/selinux/config
+      overwrite: true
+      contents:
+        inline: |
+          # SELINUX can take one of these three values:
+          #	enforcing - SELinux security policy is enforced.
+          #	permissive - SELinux prints warnings instead of enforcing.
+          #	disabled - No SELinux policy is loaded.
+          SELINUX=disabled
+
+          # SELINUXTYPE can take one of these four values:
+          #	targeted - Only targeted network daemons are protected.
+          #	strict   - Full SELinux protection.
+          #	mls      - Full SELinux protection with Multi-Level Security
+          #	mcs      - Full SELinux protection with Multi-Category Security
+          #	           (mls, but only one sensitivity level)
+          SELINUXTYPE=mcs
+      mode: 0644
 
 # Network stuff
     - path: /etc/systemd/network/00-eth0.network
