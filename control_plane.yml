@@ -60,6 +60,7 @@ storage:
       mode: 0755
 
     - path: /etc/selinux/config
+      overwrite: true
       contents:
         inline: |
           # SELINUX can take one of these three values:
@@ -96,6 +97,7 @@ storage:
           networking:
             podSubnet: "10.10.0.0/16" # --pod-network-cidr
 
+# flatcar update policy
     - path: /etc/flatcar/update.conf
       contents:
         inline: |
@@ -105,10 +107,55 @@ storage:
           LOCKSMITHD_REBOOT_WINDOW_LENGTH="1h"
       mode: 0420
 
+# set the hostname
     - path: /etc/hostname
       contents:
         inline: "master01"
       mode: 0644
+
+# disable auto-login | part 1
+    - path: /grub.cfg
+      filesystem: oem
+      mode: 0644
+      contents:
+        inline: |
+          set oem_id="vmware"
+          set linux_append=""
+
+# because of https://github.com/flatcar/Flatcar/issues/968
+    - path: /etc/systemd/network/00-eth0.network
+      mode: 0644
+      contents:
+        inline: |
+          [Match]
+          Name=ens32
+
+          [Network]
+          DHCP=no
+          Address=192.168.168.102/24
+          Gateway=192.168.168.1
+          DNS=9.9.9.9
+
+    - path: /etc/systemd/networkd.conf
+      overwrite: true
+      mode: 0644
+      contents:
+        inline: |
+          ManageForeignRoutes=no
+          ManageForeignRoutingPolicyRules=no
+
+#networkd:
+#  units:
+#    - name: 00-eth0.network
+#      contents: |
+#        [Match]
+#        Name=ens32
+#
+#        [Network]
+#        DHCP=no
+#        Address=192.168.168.102/24
+#        Gateway=192.168.168.1
+#        DNS=9.9.9.9
 
 systemd:
   units:
@@ -152,3 +199,15 @@ systemd:
         Type=oneshot
         ExecStart=/opt/bin/post_install.sh
         ExecStop=/usr/bin/rm -f /opt/bin/post_install.sh /etc/systemd/system/post_install_script.service
+
+        [Install]
+        WantedBy=multi-user.target
+
+# disable auto-login | part 2
+    - name: getty@.service
+      dropins:
+        - name: 10-disable-autologin.conf
+          contents: |
+            [Service]
+            ExecStart=
+            ExecStart=-/sbin/agetty --noclear %I $TERM
