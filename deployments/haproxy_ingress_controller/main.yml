@@ -189,7 +189,9 @@ subjects:
     kind: User
     name: haproxy-ingress
 ---
-# Source: haproxy-ingress/templates/controller-service.yaml
+# LoadBalancer: Exposes the Service externally using a cloud provider's load balancer.
+# By setting .spec.externalTrafficPolicy to Local, the client IP addresses is propagated to the end Pods,
+# but this could result in uneven distribution of traffic.
 apiVersion: v1
 kind: Service
 metadata:
@@ -212,22 +214,23 @@ spec:
     app.kubernetes.io/name: haproxy-ingress
   type: "LoadBalancer"
 ---
-# Source: haproxy-ingress/templates/controller-deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-
     app.kubernetes.io/name: haproxy-ingress
   name: haproxy-ingress
   namespace: haproxy
 spec:
   replicas: 1
-  revisionHistoryLimit: 
+# used to specify how many old ReplicaSets for this Deployment you want to retain.
+# The rest will be garbage-collected in the background. By default, it is 10.
+  revisionHistoryLimit:
   strategy:
     rollingUpdate:
       maxUnavailable: 1
     type: RollingUpdate
+# default = 0, hvor mange sekunder kubernetes skal vente etter podden ikke "failer"
   minReadySeconds: 0
   selector:
     matchLabels:
@@ -238,13 +241,14 @@ spec:
       labels:
         app.kubernetes.io/name: haproxy-ingress
     spec:
+# tilgang til kubernetes api
       serviceAccountName: haproxy-ingress
       containers:
         - name: haproxy-ingress
           image: "quay.io/jcmoraisjr/haproxy-ingress:v0.14.2"
           imagePullPolicy: "IfNotPresent"
           args:
-            - --configmap=default/haproxy-ingress
+            - --configmap=haproxy/haproxy-ingress
             - --ingress-class=haproxy
             - --sort-backends
           ports:        
@@ -283,8 +287,7 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
-          resources:
-            {}
+          resources: {}
       terminationGracePeriodSeconds: 60
       dnsPolicy: ClusterFirst
       hostNetwork: false
