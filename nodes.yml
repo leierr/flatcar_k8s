@@ -3,38 +3,75 @@ version: 1.0.0
 variant: flatcar
 storage:
   files:
-    - path: /opt/bin/kubectl
-      mode: 0755
-      contents:
-        source: https://storage.googleapis.com/kubernetes-release/release/v1.26.0/bin/linux/amd64/kubectl
     - path: /opt/bin/kubeadm
-      mode: 0755
       contents:
-        source: https://storage.googleapis.com/kubernetes-release/release/v1.26.0/bin/linux/amd64/kubeadm
+        source: https://dl.k8s.io/release/v1.26.2/bin/linux/amd64/kubeadm
+        verification:
+          hash: sha512-ef451be30ab3eb38f38502af59b67c75edffc23b09142f04257a71d94cdf68f93a4e3fc0f514ba1854af1575f240ea8b9efdd153e7d9048c904d29eec54defa8
+      mode: 0755
+
     - path: /opt/bin/kubelet
-      mode: 0755
       contents:
-        source: https://storage.googleapis.com/kubernetes-release/release/v1.26.0/bin/linux/amd64/kubelet
+        source: https://dl.k8s.io/release/v1.26.2/bin/linux/amd64/kubelet
+        verification:
+          hash: sha512-146929daea934779492ba93000b72caeb8b9f658fa42419d6352dac6597154bcc51ec5420cbd108504af58798adbcee62d3d083895ab11f633dfa0e450042fbb
+      mode: 0755
+
     - path: /etc/systemd/system/kubelet.service
       contents:
         source: https://raw.githubusercontent.com/kubernetes/release/v0.14.0/cmd/kubepkg/templates/latest/deb/kubelet/lib/systemd/system/kubelet.service
+
     - path: /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
       contents:
         source: https://raw.githubusercontent.com/kubernetes/release/v0.14.0/cmd/kubepkg/templates/latest/deb/kubeadm/10-kubeadm.conf
-    - path: /etc/kubeadm.yml
+
+# Network stuff
+    - path: /etc/systemd/network/00-eth0.network
+      mode: 0644
       contents:
         inline: |
-          apiVersion: kubeadm.k8s.io/v1beta2
-          kind: InitConfiguration
-          nodeRegistration:
-            kubeletExtraArgs:
-              volume-plugin-dir: "/opt/libexec/kubernetes/kubelet-plugins/volume/exec/"
-          ---
-          apiVersion: kubeadm.k8s.io/v1beta2
-          kind: ClusterConfiguration
-          controllerManager:
-            extraArgs:
-              flex-volume-plugin-dir: "/opt/libexec/kubernetes/kubelet-plugins/volume/exec/"          
+          [Match]
+          Name=ens32
+
+          [Network]
+          DHCP=no
+          Address=192.168.168.103/24
+          Gateway=192.168.168.1
+          DNS=9.9.9.9
+
+    - path: /etc/systemd/networkd.conf
+      overwrite: true
+      mode: 0644
+      contents:
+        inline: |
+          ManageForeignRoutes=no
+          ManageForeignRoutingPolicyRules=no
+
+# set the hostname
+    - path: /etc/hostname
+      contents:
+        inline: "master01"
+      mode: 0644
+
+# flatcar update policy
+    - path: /etc/flatcar/update.conf
+      contents:
+        inline: |
+          GROUP="stable"
+          REBOOT_STRATEGY="reboot"
+          LOCKSMITHD_REBOOT_WINDOW_START="Thu 04:00"
+          LOCKSMITHD_REBOOT_WINDOW_LENGTH="1h"
+      mode: 0420
+
+# disable auto-login | part 1
+    - path: /grub.cfg
+      filesystem: oem
+      mode: 0644
+      contents:
+        inline: |
+          set oem_id="vmware"
+          set linux_append=""
+
 systemd:
   units:
     - name: kubelet.service
@@ -44,7 +81,8 @@ systemd:
           contents: |
             [Service]
             ExecStart=
-            ExecStart=/opt/bin/kubelet $KUBELET_KUBECONFIG_ARGS $KUBELET_CONFIG_ARGS $KUBELET_KUBEADM_ARGS $KUBELET_EXTRA_ARGS            
+            ExecStart=/opt/bin/kubelet $KUBELET_KUBECONFIG_ARGS $KUBELET_CONFIG_ARGS $KUBELET_KUBEADM_ARGS $KUBELET_EXTRA_ARGS
+
     - name: kubeadm.service
       enabled: true
       contents: |
@@ -52,15 +90,19 @@ systemd:
         Description=Kubeadm service
         Requires=containerd.service
         After=containerd.service
-        ConditionPathExists=!/etc/kubernetes/kubelet.conf
 
         [Service]
         Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/opt/bin"
-        ExecStartPre=/opt/bin/kubeadm config images pull
-        ExecStartPre=/opt/bin/kubeadm init --config /etc/kubeadm.yml
-        ExecStartPre=/usr/bin/mkdir /home/core/.kube
-        ExecStartPre=/usr/bin/cp /etc/kubernetes/admin.conf /home/core/.kube/config
-        ExecStart=/usr/bin/chown -R core:core /home/core/.kube
+        ExecStart=/opt/bin/kubeadm join <output from 'kubeadm token create --print-join-command'>
 
         [Install]
-        WantedBy=multi-user.target        
+        WantedBy=multi-user.target
+
+# disable auto-login | part 2
+    - name: getty@.service
+      dropins:
+        - name: 10-disable-autologin.conf
+          contents: |
+            [Service]
+            ExecStart=
+            ExecStart=-/sbin/agetty --noclear %I $TERM
